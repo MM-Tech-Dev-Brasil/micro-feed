@@ -1,0 +1,82 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import { JwtAuthGuard } from 'src/application/auth/guard/auth.guard';
+import {
+  EditPostDto,
+  CreatePostDto,
+} from 'src/application/posts/dto/posts.dto';
+import { PostsService } from 'src/application/posts/services/posts.service';
+import { POST_MESSAGES } from 'src/constants/messages.constants';
+import { ApiService } from '../services/api.service';
+import { ApiOperation } from '@nestjs/swagger';
+
+const { POST_CREATED, POST_EDITED, POST_DELETED } = POST_MESSAGES;
+
+@UseGuards(JwtAuthGuard)
+@Controller('posts')
+export class PostsController {
+  constructor(
+    private readonly service: PostsService,
+    private readonly apiService: ApiService,
+  ) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get all posts or search by partial title' })
+  async getPosts(
+    @Query('query') query: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const posts = query
+      ? await this.service.search(query, page, limit)
+      : await this.service.getAll(page, limit);
+
+    return this.apiService.buildResponse(POST_MESSAGES.POSTS_FOUND, posts);
+  }
+
+  @Get('/author/:author_id')
+  @ApiOperation({ summary: 'Get posts by author ID' })
+  async getPostsByAuthorId(
+    @Param('author_id') author_id: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const posts = await this.service.getByAuthorId(author_id, limit, page);
+    return this.apiService.buildResponse(POST_MESSAGES.POSTS_FOUND, posts);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new post' })
+  async createPost(@Request() req, @Body() body: CreatePostDto) {
+    await this.service.create(req.user.id, body.content);
+    return this.apiService.buildResponse(POST_CREATED);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Edit a post' })
+  async editPost(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: EditPostDto,
+  ) {
+    await this.service.edit(id, req.user.id, body.new_content);
+    return this.apiService.buildResponse(POST_EDITED);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a post' })
+  async deletePost(@Request() req, @Param('id') id: string) {
+    await this.service.delete(id, req.user.id);
+    return this.apiService.buildResponse(POST_DELETED);
+  }
+}
