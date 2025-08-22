@@ -4,20 +4,15 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { usePosts } from "@/hooks/usePosts"; 
 
 interface PostComposerProps {
+
+ 
   onPost: (content: string) => void;
   placeholder?: string;
 }
-
-/**
- * Componente para criação de novas postagens.
- * A Card de composição se esconde ao rolar para baixo e reaparece ao rolar para cima.
- *
- * @param {object} props - As propriedades do componente.
- * @param {Function} props.onPost - Função para enviar o conteúdo da postagem.
- * @param {string} [props.placeholder] - O texto de placeholder do textarea.
- */
 export function PostComposer({
   onPost,
   placeholder = "What is happening?!",
@@ -31,7 +26,6 @@ export function PostComposer({
     let lastScrollY = window.scrollY;
 
     const handleScroll = () => {
-      // Esconde a Card se o usuário rolar para baixo, mostra se rolar para cima.
       if (window.scrollY > lastScrollY + 10) {
         setShowComposer(false);
       } else if (window.scrollY < lastScrollY - 10) {
@@ -43,14 +37,14 @@ export function PostComposer({
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (content.length > 0 && content.length <= maxChars) {
-      onPost(content);
-      setContent("");
-    }
-  };
+const { createPost } = usePosts();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (content.length > 0 && content.length <= maxChars) {
+    await createPost(content);
+    setContent("");
+  }
+};
 
   return (
     <div

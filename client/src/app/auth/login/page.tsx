@@ -1,14 +1,20 @@
-"use client"
+"use client";
 
-
-import Link from 'next/link';
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label"; 
+import { useAuth } from "@/hooks/useAuth";
 
 export default function App() {
-  const [page, setPage] = useState('login');
+  const router = useRouter();
+  const { loginUser, loading, error } = useAuth(); 
   const [formData, setFormData] = useState({
-    username: '',
-    password: '',
+    username: "",
+    password: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,86 +25,69 @@ export default function App() {
     }));
   };
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form data:', formData);
-    setPage('home');
+    console.log(formData)
+    const success = await loginUser(formData.username, formData.password);
+    if (success) router.push("/feed");
   };
 
-  // Esta função agora apenas registra uma mensagem para indicar que a funcionalidade será implementada.
-  const handleGoToSignup = () => {
-    console.log('Sign up button clicked. Functionality to be implemented.');
-  };
-
-  const renderPage = () => {
-    switch (page) {
-      case 'login':
-        return (
-          <div className="flex items-center justify-center min-h-screen bg-neutral-900 text-white p-4 font-sans">
-            <div className="w-full max-w-sm rounded-2xl bg-neutral-800 p-8 shadow-2xl">
-              <h1 className="text-3xl font-bold mb-6 text-center">Log In</h1>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="username" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Username</label>
-                  <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    required
-                    className="flex h-10 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm ring-offset-neutral-900 placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="username"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Password</label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    className="flex h-10 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm ring-offset-neutral-900 placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="********"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center rounded-lg bg-sky-500 text-sm font-medium text-white ring-offset-neutral-900 transition-colors hover:bg-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 w-full"
-                >
-                  Log In
-                </button>
-              </form>
-              <div className="mt-4 text-center text-sm">
-                <Link
-                  href="/auth/register"
-                  className="text-sky-500 hover:underline"
-                  onClick={handleGoToSignup}
-                >
-                  Don't have an account? Sign up!
-                </Link>
-              </div>
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-neutral-900 text-white p-4 font-sans">
+      <Card className="w-full max-w-sm bg-neutral-800 text-white shadow-2xl border-0">
+        <CardHeader>
+          <CardTitle className="text-3xl text-center">Log In</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="username"
+                className="bg-neutral-900 border-neutral-700 text-white"
+                required
+              />
             </div>
-          </div>
-        );
-      case 'home':
-        return (
-          <div className="flex items-center justify-center min-h-screen bg-neutral-900 text-white p-4 font-sans">
-            <div className="w-full max-w-lg rounded-2xl bg-neutral-800 p-8 shadow-2xl text-center">
-              <h1 className="text-3xl font-bold mb-4">Welcome!</h1>
-              <p className="text-lg">You are logged in and ready to tweet!</p>
-              <p className="text-sm mt-2">Simulating the Twitter home screen.</p>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="********"
+                className="bg-neutral-900 border-neutral-700 text-white"
+                required
+              />
             </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
 
-  return renderPage();
+            {error && (
+              <p className="text-red-500 text-sm text-center">{error}</p>
+            )}
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-sky-500 hover:bg-sky-600 text-white"
+            >
+              {loading ? "Logging in..." : "Log In"}
+            </Button>
+          </form>
+          <div className="mt-4 text-center text-sm">
+            <Link
+              href="/auth/register"
+              className="text-sky-500 hover:underline"
+            >
+              Don&apos;t have an account? Sign up!
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
-
-

@@ -4,6 +4,9 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TriangleAlert } from "lucide-react";
+import { signupSchema } from "@/schemas/register"; 
+import { useCreateAccount } from "@/hooks/useCreateAccount"; 
+import { useRouter } from "next/navigation";
 
 export default function App() {
   const [formData, setFormData] = useState({
@@ -11,7 +14,10 @@ export default function App() {
     password: "",
     confirmPassword: "",
   });
-  const [error, setError] = useState<string | null>(null);
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
+
+  const { createAccount, loading, error } = useCreateAccount();
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -21,18 +27,34 @@ export default function App() {
     }));
   };
 
-  const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match!"); // 🔴 dispara Alert do shadcn
+    setErrorMessages([]);
+    const result = signupSchema.safeParse(formData);
+
+    if (!result.success) {
+      const fieldErrors = result.error.flatten().fieldErrors;
+      const allErrorMessages = Object.values(fieldErrors)
+        .flat()
+        .filter(Boolean);
+      setErrorMessages(allErrorMessages as string[]);
       return;
     }
-    setError(null);
-    console.log("✅ Sign up form data:", formData);
+
+    // ✅ Envia dados para API
+    const success = await createAccount({
+      username: result.data.username,
+      password: result.data.password,
+      confirmPassword: result.data.confirmPassword,
+    });
+
+    if (success) {
+      router.push("/auth/login"); 
+    }
   };
 
   const handleGoToLogin = () => {
-    console.log("Log In button clicked. Navigation to be implemented.");
+    router.push("/auth/login");
   };
 
   return (
@@ -55,6 +77,7 @@ export default function App() {
               placeholder="yourusername"
             />
           </div>
+
           <div className="space-y-2">
             <label htmlFor="password" className="text-sm font-medium">
               Password
@@ -70,11 +93,9 @@ export default function App() {
               placeholder="********"
             />
           </div>
+
           <div className="space-y-2">
-            <label
-              htmlFor="confirmPassword"
-              className="text-sm font-medium"
-            >
+            <label htmlFor="confirmPassword" className="text-sm font-medium">
               Confirm Password
             </label>
             <input
@@ -88,6 +109,26 @@ export default function App() {
               placeholder="confirm password"
             />
           </div>
+
+          {errorMessages.length > 0 && (
+            <Alert
+              variant="destructive"
+              className="mt-2 flex flex-col gap-2 rounded-lg border border-red-600 bg-red-950/60 text-red-400"
+            >
+              <div className="flex items-center gap-2">
+                <TriangleAlert className="h-4 w-4 mt-0.5 text-red-500" />
+                <AlertTitle className="text-red-400">Error</AlertTitle>
+              </div>
+              <AlertDescription className="text-red-300">
+                <ul className="list-disc list-inside">
+                  {errorMessages.map((msg, i) => (
+                    <li key={i}>{msg}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {error && (
             <Alert
               variant="destructive"
@@ -95,18 +136,21 @@ export default function App() {
             >
               <TriangleAlert className="h-4 w-4 mt-0.5 text-red-500" />
               <div>
-                <AlertTitle className="text-red-400">Error</AlertTitle>
+                <AlertTitle className="text-red-400">API Error</AlertTitle>
                 <AlertDescription className="text-red-300">{error}</AlertDescription>
               </div>
             </Alert>
           )}
+
           <button
             type="submit"
-            className="inline-flex items-center justify-center rounded-lg bg-sky-500 text-sm font-medium text-white transition-colors hover:bg-sky-600 h-10 px-4 py-2 w-full"
+            disabled={loading}
+            className="inline-flex items-center justify-center rounded-lg bg-sky-500 text-sm font-medium text-white transition-colors hover:bg-sky-600 h-10 px-4 py-2 w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Sign Up
+            {loading ? "Signing Up..." : "Sign Up"}
           </button>
         </form>
+
         <div className="mt-4 text-center text-sm">
           <Link
             href="/auth/login"
