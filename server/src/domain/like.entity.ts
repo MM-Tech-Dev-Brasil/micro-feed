@@ -1,11 +1,12 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  ManyToOne,
+  Entity,
   JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
+
 import { PostEntity } from './post.entity';
 import { ProfileEntity } from './profile.entity';
 
@@ -23,7 +24,7 @@ export class LikeEntity {
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 
-  @ManyToOne(() => PostEntity)
+  @ManyToOne(() => PostEntity, (post) => post.likes)
   @JoinColumn({ name: 'post_id' })
   post: PostEntity;
 

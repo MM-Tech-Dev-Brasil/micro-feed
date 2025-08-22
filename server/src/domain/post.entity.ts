@@ -4,9 +4,12 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+
+import { LikeEntity } from './like.entity';
 import { ProfileEntity } from './profile.entity';
 
 @Entity('posts')
@@ -29,4 +32,7 @@ export class PostEntity {
   @ManyToOne(() => ProfileEntity)
   @JoinColumn({ name: 'author_id' })
   profile: ProfileEntity;
+
+  @OneToMany(() => LikeEntity, (like) => like.post)
+  likes: LikeEntity[];
 }

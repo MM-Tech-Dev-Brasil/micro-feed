@@ -36,10 +36,11 @@ export class PostsController {
     @Query('query') query: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Request() req,
   ) {
     const posts = query
-      ? await this.service.search(query, page, limit)
-      : await this.service.getAll(page, limit);
+      ? await this.service.search(query, page, limit, req.user.id)
+      : await this.service.getAll(page, limit, req.user.id);
 
     return this.apiService.buildResponse(POST_MESSAGES.POSTS_FOUND, posts);
   }
@@ -50,8 +51,14 @@ export class PostsController {
     @Param('author_id') author_id: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Request() req,
   ) {
-    const posts = await this.service.getByAuthorId(author_id, limit, page);
+    const posts = await this.service.getByAuthorId(
+      author_id,
+      limit,
+      page,
+      req.user.id,
+    );
     return this.apiService.buildResponse(POST_MESSAGES.POSTS_FOUND, posts);
   }
 
