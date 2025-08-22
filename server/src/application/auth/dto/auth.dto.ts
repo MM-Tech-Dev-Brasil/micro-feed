@@ -19,7 +19,7 @@ export class RegisterDto {
   username: string;
 
   @IsNotEmpty()
-  @MinLength(6)
+  @MinLength(8)
   @ApiProperty({ example: 'marvel123' })
   password: string;
 }

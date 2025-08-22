@@ -35,7 +35,7 @@ export class PostsController {
   async getPosts(
     @Query('query') query: string,
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query('limit') limit: number = 5,
     @Request() req,
   ) {
     const posts = query
@@ -65,8 +65,8 @@ export class PostsController {
   @Post()
   @ApiOperation({ summary: 'Create a new post' })
   async createPost(@Request() req, @Body() body: CreatePostDto) {
-    await this.service.create(req.user.id, body.content);
-    return this.apiService.buildResponse(POST_CREATED);
+    const created = await this.service.create(req.user.id, body.content);
+    return this.apiService.buildResponse(POST_CREATED, created);
   }
 
   @Patch(':id')

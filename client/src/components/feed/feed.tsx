@@ -1,111 +1,166 @@
-import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { PostComponent } from "./post";
-import { PostComposer } from "./postComposer";
-import { Post, usePosts } from "@/hooks/usePosts";
-import { useLikes } from "@/hooks/useLikes";
-import { useAuth } from "@/hooks/useAuth";
-interface FeedProps {
-  posts: Post[]; 
+import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { PostComponent } from './post';
+import { PostComposer } from './postComposer';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  getAllPosts,
+  getPostsByAuthorId,
+  create,
+  deletePost,
+  editPost,
+  IPost,
+} from '@/api/posts';
+import { createLike, deleteLike } from '@/api/likes';
+
+interface IFeedProps {
+  isAllSelected: boolean;
 }
 
-export function Feed({ posts: initialPosts }: FeedProps) {
-  const {currentUser} = useAuth()
-  const {editPost, deletePost}=usePosts()
-  const user = currentUser()
-  const [filter, setFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [posts, setPosts] = useState<Post[]>(initialPosts);
+export function Feed({ isAllSelected }: IFeedProps) {
+  const { currentUser } = useAuth();
 
-  const { toggleLike, loading, error } = useLikes();
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [posts, setPosts] = useState<IPost[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const user = currentUser();
 
   useEffect(() => {
-    setPosts(initialPosts);
-  }, [initialPosts]);
+    fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, isAllSelected, searchQuery]);
 
-  const handlePost = (content: string) => {
-    const newPost: Post = {
-      id: Date.now().toString(),
-      content,
-      userId: "currentUser",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      likesCount: 0,
-      isLikedByCurrentUser: false,
-    };
-    setPosts([newPost, ...posts]);
+  const fetchPosts = async () => {
+    setIsLoading(true);
+
+    const posts = isAllSelected
+      ? await getAllPosts(page, searchQuery)
+      : await getPostsByAuthorId(user?.sub as string, page);
+
+    setIsLoading(false);
+    if (posts) setPosts(posts);
+  };
+
+  const createPost = async (content: string) => {
+    setIsLoading(true);
+    const created = await create(content);
+
+    setPosts([
+      {
+        ...created,
+        like_by_current_user: false,
+        likes_count: 0,
+        username: user?.username,
+      },
+      ...posts,
+    ]);
+    setIsLoading(false);
   };
 
   const handleLike = async (postId: string) => {
-    const post = posts.find(p => p.id === postId);
-    if (!post) return;
+    const liked = posts.map((post) => {
+      if (post.id === postId) {
+        post.liked_by_current_user = true;
+        post.likes_count++;
+      }
+      return post;
+    });
+    setPosts(liked);
 
-    const updatedPost = await toggleLike(post);
-    setPosts(posts.map(p => p.id === postId ? updatedPost : p));
+    const created = await createLike(postId);
+
+    const updated = posts.map((post) => {
+      if (post.id === postId) post.like_by_current_user = created.id;
+      return post;
+    });
+    setPosts(updated);
   };
 
-const handleEdit = async (postId: string, newContent: string) => {
-  console.log("Editing post:", postId); 
-  try {
-    await editPost(postId, newContent); 
-    window.location.reload();
-  } catch (err) {
-    console.error("Error updating post:", err);
-    window.location.reload(); 
-  }
-};
+  const handleDislike = async (like_id: string) => {
+    const updated = posts.map((post) => {
+      if (post.like_by_current_user === like_id) {
+        post.liked_by_current_user = false;
+        post.like_by_current_user = null;
+        post.likes_count--;
+      }
+      return post;
+    });
+    setPosts(updated);
+
+    await deleteLike(like_id);
+  };
+
+  const handleEdit = async (postId: string, newContent: string) => {
+    editPost(postId, newContent);
+
+    posts.forEach((post) => {
+      if (post.id === postId) post.content = newContent;
+    });
+  };
 
   const handleDelete = async (postId: string) => {
-    console.log("Editing post:", postId); 
-    try {
-      await deletePost(postId); 
-      window.location.reload();
-  } catch (err) {
-    console.error("Error updating post:", err);
-    window.location.reload(); 
-  }
+    deletePost(postId);
+    setPosts(posts.filter((post) => post.id !== postId));
   };
 
-  const filteredPosts = posts.filter(post => {
-    if (filter === "mine" && post.userId !== user?.sub) return false;
-    if (searchQuery && !post.content.toLowerCase().includes(searchQuery.toLowerCase()))
-      return false;
-    return true;
-  });
-
   return (
-    <div className="max-w-xl mx-auto p-4 pt-28">
-      <div className="fixed top-20 left-0 right-0 flex justify-center z-50">
-        <div className="w-full max-w-xl px-4">
-          <PostComposer onPost={handlePost} />
+    <div className='max-w-xl mx-auto p-4 pt-28'>
+      <div className='fixed top-20 left-0 right-0 flex justify-center z-50'>
+        <div className='w-full max-w-xl px-4'>
+          <PostComposer onPost={createPost} isLoading={isLoading} />
         </div>
       </div>
 
-      <div className="mb-4 mt-25">
+      <div className='mb-4 mt-25'>
         <Input
-          type="text"
-          placeholder="Search..."
+          className='text-white'
+          type='text'
+          placeholder='Search...'
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
-      <div className="mt-4 space-y-4">
-        {filteredPosts.map(post => (
+      <div className='mt-4 space-y-4'>
+        {posts.map((post) => (
           <PostComponent
             key={post.id}
             post={post}
             onLike={handleLike}
+            onDislike={handleDislike}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            isUserPost={post.userId === user?.sub}
+            isUserPost={post.author_id === user?.sub}
           />
         ))}
-        {filteredPosts.length === 0 && (
-          <p className="text-center text-neutral-500 mt-8">No posts found.</p>
+        {posts.length === 0 && (
+          <p className='text-center text-neutral-500 mt-8'>
+            {isLoading ? 'Loading posts...' : 'No posts found.'}
+          </p>
         )}
+      </div>
+
+      <div className='mt-8 flex justify-center gap-4'>
+        <button
+          className={`px-4 py-2 rounded-full bg-zinc-800 text-white text-xl disabled:opacity-50 disabled:cursor-default cursor-pointer ${
+            page === 1 ? '' : 'hover:text-sky-400'
+          }`}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+        >
+          &#8592;
+        </button>
+
+        <button
+          className='px-4 py-2 rounded-full bg-zinc-800 text-white text-xl disabled:opacity-50 disabled:cursor-default cursor-pointer hover:text-sky-400'
+          onClick={() => setPage(page + 1)}
+          disabled={posts.length === 0}
+        >
+          &#8594;
+        </button>
       </div>
     </div>
   );
 }
-

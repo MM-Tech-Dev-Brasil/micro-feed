@@ -15,14 +15,20 @@ export class PostsService {
   ) {}
 
   private addLikeStatus(posts: PostEntity[], currentUserId?: string) {
-    return posts.map((post) => ({
-      ...post,
-      isLikedByCurrentUser: currentUserId
-        ? post.likes.some((like) => like.user_id === currentUserId)
-        : false,
-      likesCount: post.likes.length,
-      likes: undefined,
-    }));
+    return posts.map((post) => {
+      const userLike = currentUserId
+        ? post.likes.find((like) => like.user_id === currentUserId)
+        : null;
+
+      return {
+        ...post,
+        like_by_current_user: userLike ? userLike.id : null,
+        liked_by_current_user: !!userLike,
+        likes_count: post.likes.length,
+        likes: undefined,
+        username: post.profile.username,
+      };
+    });
   }
 
   async search(
@@ -33,7 +39,7 @@ export class PostsService {
   ) {
     const posts = await this.repository.find({
       where: { content: Like(`%${partial}%`) },
-      relations: ['likes'],
+      relations: ['likes', 'profile'],
       order: { created_at: 'DESC' },
       take: limit,
       skip: (page - 1) * limit,
@@ -45,7 +51,7 @@ export class PostsService {
   async getAll(page: number, limit: number, currentUserId?: string) {
     const posts = await this.repository.find({
       order: { created_at: 'DESC' },
-      relations: ['likes'],
+      relations: ['likes', 'profile'],
       take: limit,
       skip: (page - 1) * limit,
     });
@@ -61,7 +67,7 @@ export class PostsService {
   ) {
     const posts = await this.repository.find({
       where: { author_id },
-      relations: ['likes'],
+      relations: ['likes', 'profile'],
       order: { created_at: 'DESC' },
       take: limit,
       skip: (page - 1) * limit,

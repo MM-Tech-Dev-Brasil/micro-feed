@@ -30,8 +30,8 @@ export class LikesController {
     summary: 'Create a like for a post',
   })
   async createLike(@Request() req, @Body() body: LikeDto) {
-    await this.service.create(body.post_id, req.user.id);
-    return this.apiService.buildResponse(LIKE_CREATED);
+    const created = await this.service.create(body.post_id, req.user.id);
+    return this.apiService.buildResponse(LIKE_CREATED, created);
   }
 
   @Delete(':id')

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useApi } from './useApi';
+import axios from 'axios';
+import Cookies from 'js-cookie';
+import { API_BASE_URL } from '@/constants/endpoints';
 
 interface LoginPayload {
   username: string;
@@ -22,7 +24,6 @@ interface DecodedJWT {
 }
 
 export function useAuth() {
-  const api = useApi();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,24 +40,29 @@ export function useAuth() {
     }
   }
 
-  async function loginUser(username: string, password: string): Promise<boolean> {
+  async function loginUser(
+    username: string,
+    password: string
+  ): Promise<boolean> {
     setLoading(true);
     setError(null);
 
     try {
       const payload: LoginPayload = { username, password };
-      const { data, status } = await api.post<LoginResponse>("/auth/login", payload);
+      const { data, status } = await axios.post<LoginResponse>(
+        `${API_BASE_URL}/auth/login`,
+        payload
+      );
 
       if (status !== 200) {
-        setError(data.message || "Login failed");
+        setError(data.message || 'Login failed');
         return false;
       }
       const token = data.data.access_token;
-      localStorage.setItem("token", token);
       document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24}`;
       return true;
     } catch (err: any) {
-      setError(err.response?.data?.message || "An unexpected error occurred.");
+      setError(err.response?.data?.message || 'An unexpected error occurred.');
       return false;
     } finally {
       setLoading(false);
@@ -64,20 +70,17 @@ export function useAuth() {
   }
 
   function currentUser(): DecodedJWT | null {
-    const token = localStorage.getItem('token');
+    const token = Cookies.get('token');
     if (!token) return null;
+
     const decoded = decodeJWT(token);
-    if (decoded?.exp && decoded.exp * 1000 < Date.now()) {
-      logout(); 
-      return null;
-    }
+    if (decoded?.exp && decoded.exp * 1000 < Date.now()) logout();
 
     return decoded;
   }
 
   function logout() {
-    localStorage.removeItem('token');
-    document.cookie = "token=; path=/; max-age=0"; 
+    document.cookie = 'token=; path=/; max-age=0';
     window.location.reload();
   }
 
