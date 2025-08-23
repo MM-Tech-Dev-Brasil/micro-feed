@@ -20,14 +20,9 @@ A modern social media feed application built with Next.js 15 and NestJS, featuri
 ## 🚀 Quick Start
 
 ### 📋 Prerequisites
-- Node.js 18+
+- Node.js 22
 - PostgreSQL 12+
-- npm/yarn/pnpm
-
-### 1️⃣ Database Setup
-```sql
-CREATE DATABASE micro_feed;
-```
+- npm
 
 ### 2️⃣ Backend Setup
 ```bash
@@ -61,6 +56,7 @@ npm run dev
 - `POST /auth/login` - User login
 - `POST /auth/register` - User registration
 - `GET /posts` - Get all posts
+- `GET /posts/author/:author_id` - Get posts from author
 - `POST /posts` - Create post
 - `PUT /posts/:id` - Update post
 - `DELETE /posts/:id` - Delete post
