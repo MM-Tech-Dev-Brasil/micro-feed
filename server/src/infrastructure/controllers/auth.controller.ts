@@ -26,15 +26,6 @@ export class AuthController {
     summary: 'Register the user to use the API',
   })
   @ApiBody({ type: RegisterDto })
-  @ApiResponse({
-    status: 201,
-    description: USER_REGISTERED,
-    schema: {
-      example: {
-        message: USER_REGISTERED,
-      },
-    },
-  })
   async register(@Body() body: RegisterDto) {
     await this.authService.register(body);
     return this.apiService.buildResponse(USER_REGISTERED);
@@ -46,18 +37,6 @@ export class AuthController {
     summary: 'Authenticate the user to use the API',
   })
   @ApiBody({ type: LoginDto })
-  @ApiResponse({
-    status: 200,
-    description: USER_LOGGED_IN,
-    schema: {
-      example: {
-        message: USER_LOGGED_IN,
-        data: {
-          access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        },
-      },
-    },
-  })
   async login(@Body() body: LoginDto) {
     const profile = await this.authService.validateProfile(body);
     if (!profile) throw new UnauthorizedException('Invalid credentials');

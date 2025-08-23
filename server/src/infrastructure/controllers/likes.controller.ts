@@ -29,6 +29,7 @@ export class LikesController {
   @ApiOperation({
     summary: 'Create a like for a post',
   })
+  @ApiBody({ type: LikeDto})
   async createLike(@Request() req, @Body() body: LikeDto) {
     const created = await this.service.create(body.post_id, req.user.id);
     return this.apiService.buildResponse(LIKE_CREATED, created);

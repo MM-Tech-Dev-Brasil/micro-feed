@@ -18,7 +18,7 @@ import {
 import { PostsService } from 'src/application/posts/services/posts.service';
 import { POST_MESSAGES } from 'src/constants/messages.constants';
 import { ApiService } from '../services/api.service';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiBody, ApiOperation } from '@nestjs/swagger';
 
 const { POST_CREATED, POST_EDITED, POST_DELETED } = POST_MESSAGES;
 
@@ -64,6 +64,7 @@ export class PostsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new post' })
+  @ApiBody({ type: CreatePostDto })
   async createPost(@Request() req, @Body() body: CreatePostDto) {
     const created = await this.service.create(req.user.id, body.content);
     return this.apiService.buildResponse(POST_CREATED, created);
@@ -71,6 +72,7 @@ export class PostsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Edit a post' })
+  @ApiBody({ type: EditPostDto })
   async editPost(
     @Request() req,
     @Param('id') id: string,
